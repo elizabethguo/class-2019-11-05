@@ -1,0 +1,48 @@
+---
+title: "Baby Names"
+author: "Elizabeth Guo"
+date: "11/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(infer)
+library(moderndive)
+library(tidyverse)
+```
+
+
+score age gender
+
+```{r}
+lm.obj <- lm(score ~ age + gender, data = evals)
+
+get_regression_table(lm.obj)
+```
+```{r}
+evals %>% 
+  rep_sample_n(size = 463, replace = TRUE, reps = 1000) %>% 
+  group_by(replicate) %>% 
+  summarise(mean_age = mean(age)) %>% 
+  ungroup(replicate) %>% 
+  summarise(lower = quantile(mean_age, probs = 0.025),
+            middle = quantile(mean_age, probs = 0.5),
+            upper = quantile(mean_age, probs = 0.975))
+  
+```
+```{r}
+evals %>% 
+  rep_sample_n(size = 463, replace = TRUE, reps = 1000) %>% 
+  group_by(replicate) %>% 
+  nest() %>% 
+  mutate(results = map(data, ~ lm(score ~ age + gender, data = .x))) %>% 
+  mutate(coefficients = map(results, ~ coef(.x))) %>% 
+  mutate(age_coef = map(coefficients, ~ pluck(.x, "age"))) %>% 
+  unnest(age_coef) %>% 
+  ungroup() %>% 
+  summarise(lower = quantile(age_coef, probs = 0.025),
+            upper = quantile(age_coef, probs = 0.975))
+```
+
